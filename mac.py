@@ -5,8 +5,11 @@
 
 import network
 
-sta = network.WLAN(network.STA_IF)   # newer firmware also accepts network.WLAN.IF_STA
-sta.active(True)                     # the radio has to be on to read the MAC
+try:
+    sta = network.WLAN(network.WLAN.IF_STA)   # spelling used in the current MicroPython docs
+except AttributeError:
+    sta = network.WLAN(network.STA_IF)        # older firmware
+sta.active(True)                              # the radio has to be on to read the MAC
 
 mac = sta.config('mac')              # 6 bytes
 print('MAC (for labelling):  ', ':'.join('%02x' % b for b in mac))
