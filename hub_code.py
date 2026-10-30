@@ -3,6 +3,8 @@
 from machine import Pin
 import random
 import time
+import network
+import espnow
 
 '''
 Five steps for the hub
@@ -28,6 +30,28 @@ delayMax = 3500
 
 # initialize button (pin 4 - GPIO)
 button = Pin(4, Pin.IN, Pin.PULL_UP)
+
+# ESP NOW setup
+
+# get station
+sta = network.WLAN(network.WLAN.IF_STA)
+
+# reset wifi
+sta.active(False)
+
+# turn wifi back on
+sta.active(True)
+
+# set the channel
+sta.config(channel = 1)
+
+# turn on espnow
+e = espnow.ESPNow()
+e.active(True)
+
+# set to broadcast to all peers
+BROADCAST = b'\xff' * 6
+e.add_peer(BROADCAST)
 
 # outer loop to always run when the game is turned on
 while(True):
@@ -61,12 +85,7 @@ while(True):
 
 
                 # 1. Task Select
-
-                tasks = ["attack", "shield", "jump"]
-
-                taskint = random.randint(0, 2)
-
-                task = tasks[taskint]
+                task = random.randint(1, 3)
 
                 # 2. Reaction threshold
                 threshold = startThreshold - (thresholdStep * rounds)
