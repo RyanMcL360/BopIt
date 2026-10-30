@@ -69,6 +69,51 @@ RES_FMT = "<BBBh"
 CONTROLLER1_MAC = b'\x80\x45\x6b\x2d\x1b\x48'
 CONTROLLER2_MAC = b'\x80\x45\x6b\x29\xf0\x9c'
 
+# function to check if controllers are on
+def controllersReady(tries = 3, waitMs = 300):
+    ready1 = False
+    ready2 = False
+
+    PING = 0
+    PING_ROUND = 255
+
+    for attempt in range(tries):
+
+        # throw old values away
+        while True:
+            mac, msg = e.recv(0)
+            if mac == None:
+                break
+
+        # broadcast to ping controllers
+        e.send(BROADCAST, struct.pack(CMD_FMT, SIG, PING_ROUND, PING, 0))
+        sentAt = time.ticks_ms()
+
+        # wait for both responses or the deadline
+        # get the mac of sender and msg of sender
+        mac, msg = e.recv(50)
+
+        # if the msg is None or not our size, continue
+        if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+            continue
+
+        # if it is our size, unpack it
+        s, rnd, player, t = struct.unpack(RES_FMT, msg)
+
+        # check to make sure it is our signature and right round
+        if (s != SIG) or (rnd != PING_ROUND):
+            continue
+
+        # set whichever player ready
+        if (player == 1) and (mac == CONTROLLER1_MAC):
+            ready1 = True
+        elif (player == 2) and (mac == CONTROLLER2_MAC):
+            ready2 = True
+
+        if ready1 and ready2:
+            return True
+    return False
+
 # outer loop to always run when the game is turned on
 while(True):
 
@@ -85,6 +130,10 @@ while(True):
         # if the start button still is pressed, start the game
         if(not pressed):
 
+            # make sure players are ready
+            if (not controllersReady(3, 500)):
+                continue
+    
             player1Health = startingHealth
             player2Health = startingHealth
             player1Win = False
@@ -230,3 +279,6 @@ while(True):
             # # # # # Display winner message on hub # # # # # 
             # # # # # # # # # # # # # # # # # # # # # # # # #
             # # # # # # # # # # # # # # # # # # # # # # # # #
+
+            # wait 5 seconds before allowing another game to start
+            time.sleep(5)
