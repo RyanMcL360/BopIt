@@ -32,7 +32,7 @@ SDA = 8
 SCL = 9
 
 # Jump button: wire one side to the pin, the other to GND (internal pull-up used)
-BTN = 4
+BTN = 23
 
 # I2S to MAX98357A amplifier
 BCLK = 5               # amp pin BCLK
