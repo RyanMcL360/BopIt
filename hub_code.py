@@ -63,7 +63,11 @@ CMD_FMT = "<BBBH"
 
 # response from controllers format
 # signature, round, playerID, timestamp (ms)
-RES_FMT = "<BBBH"
+RES_FMT = "<BBBh"
+
+# register MAC addresses of both controllers
+CONTROLLER1_MAC = b'\x80\x45\x6b\x2d\x1b\x48'
+CONTROLLER2_MAC = b'\x80\x45\x6b\x29\xf0\x9c'
 
 # outer loop to always run when the game is turned on
 while(True):
@@ -88,6 +92,7 @@ while(True):
             draw = False
             gameOver = False
             roundNo = 0
+            aborted = False
             
             while(not gameOver):
                 
@@ -126,8 +131,46 @@ while(True):
                 # # # # # Receive timestamp from the controllers # # # # # 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-                timestamp1 = 0
-                timestamp2 = 0
+
+                # clear timestamps and set deadline to get packets back
+                timestamp1 = None
+                timestamp2 = None
+                deadline = threshold + 500
+
+                # wait for both timestamps or the deadline
+                while((timestamp1 == None or timestamp2 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
+
+                    # get the mac of sender and msg of sender
+                    mac, msg = e.recv(50)
+
+                    # if the msg is None or not our size, continue
+                    if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+                        continue
+
+                    # if it is our size, unpack it
+                    s, rnd, player, t = struct.unpack(RES_FMT, msg)
+
+                    # check to make sure it is our signature and right round
+                    if (s != SIG) or (rnd != roundNo):
+                        continue
+
+                    # check to make sure its actually the players
+                    if (player == 1 and mac != CONTROLLER1_MAC) or (player == 2 and mac != CONTROLLER2_MAC):
+                        continue
+
+                    if (player == 1) and (timestamp1 == None):
+                        timestamp1 = t
+                    elif (player == 2) and (timestamp2 == None):
+                        timestamp2 = t
+
+                # check to make sure it stopped searching because it got responses
+                # if it stopped due to deadline, error and end game
+                if (timestamp1 == None) or (timestamp2 == None):
+                    aborted = True
+                    gameOver = True
+                    continue
+
+                    
 
                 # 3. Compare timestamps from players
                 # 4. Update values
@@ -181,6 +224,9 @@ while(True):
                     gameOver = True
 
                 roundNo += 1
-                            
-            
-        
+
+            # # # # # # # # # # # # # # # # # # # # # # # # #
+            # # # # # # # # # # # # # # # # # # # # # # # # #
+            # # # # # Display winner message on hub # # # # # 
+            # # # # # # # # # # # # # # # # # # # # # # # # #
+            # # # # # # # # # # # # # # # # # # # # # # # # #
