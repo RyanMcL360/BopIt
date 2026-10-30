@@ -5,6 +5,7 @@ import random
 import time
 import network
 import espnow
+import struct
 
 '''
 Five steps for the hub
@@ -86,7 +87,7 @@ while(True):
             player2Win = False
             draw = False
             gameOver = False
-            rounds = 0
+            roundNo = 0
             
             while(not gameOver):
                 
@@ -99,7 +100,7 @@ while(True):
                 task = random.randint(1, 3)
 
                 # 2. Reaction threshold
-                threshold = startThreshold - (thresholdStep * rounds)
+                threshold = startThreshold - (thresholdStep * roundNo)
 
                 if (threshold < minThreshold):
                     threshold = minThreshold
@@ -110,6 +111,14 @@ while(True):
                 # # # # # Transmit task to the controllers # # # # # 
                 # # # # # # # # # # # # # # # # # # # # # # # # # #
                 # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+                while True:
+                    senderMac, senderMsg = e.recv(0)
+                    if senderMac is None:
+                        break
+                packet = struct.pack(CMD_FMT, SIG, roundNo, task, threshold)
+                e.send(BROADCAST, packet)
+                sentAt = time.ticks_ms()
 
 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -171,7 +180,7 @@ while(True):
                     player1Win = True
                     gameOver = True
 
-                rounds += 1
+                roundNo += 1
                             
             
         
