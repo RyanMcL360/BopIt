@@ -53,6 +53,17 @@ e.active(True)
 BROADCAST = b'\xff' * 6
 e.add_peer(BROADCAST)
 
+# set up signature for both hub and controller
+SIG = 0x35
+
+# command sent to controllers format
+# signature, round, command, threshold (ms)
+CMD_FMT = "<BBBH"
+
+# response from controllers format
+# signature, round, playerID, timestamp (ms)
+RES_FMT = "<BBBH"
+
 # outer loop to always run when the game is turned on
 while(True):
 
