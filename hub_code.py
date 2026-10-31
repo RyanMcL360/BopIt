@@ -90,25 +90,26 @@ def controllersReady(tries = 3, waitMs = 300):
         sentAt = time.ticks_ms()
 
         # wait for both responses or the deadline
-        # get the mac of sender and msg of sender
-        mac, msg = e.recv(50)
+        while((not ready1 or not ready2) and time.ticks_diff(time.ticks_ms(), sentAt) < waitMs):
+            # get the mac of sender and msg of sender
+            mac, msg = e.recv(50)
 
-        # if the msg is None or not our size, continue
-        if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
-            continue
+            # if the msg is None or not our size, continue
+            if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+                continue
 
-        # if it is our size, unpack it
-        s, rnd, player, t = struct.unpack(RES_FMT, msg)
+            # if it is our size, unpack it
+            s, rnd, player, t = struct.unpack(RES_FMT, msg)
 
-        # check to make sure it is our signature and right round
-        if (s != SIG) or (rnd != PING_ROUND):
-            continue
+            # check to make sure it is our signature and right round
+            if (s != SIG) or (rnd != PING_ROUND):
+                continue
 
-        # set whichever player ready
-        if (player == 1) and (mac == CONTROLLER1_MAC):
-            ready1 = True
-        elif (player == 2) and (mac == CONTROLLER2_MAC):
-            ready2 = True
+            # set whichever player ready
+            if (player == 1) and (mac == CONTROLLER1_MAC):
+                ready1 = True
+            elif (player == 2) and (mac == CONTROLLER2_MAC):
+                ready2 = True
 
         if ready1 and ready2:
             return True
