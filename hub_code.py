@@ -133,6 +133,7 @@ while(True):
 
             # make sure players are ready
             if (not controllersReady(3, 500)):
+                print("Controllers Not Ready - Game Not Started")
                 continue
     
             print("Game is Starting")
