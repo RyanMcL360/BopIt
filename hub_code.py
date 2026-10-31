@@ -135,6 +135,8 @@ while(True):
             if (not controllersReady(3, 500)):
                 continue
     
+            print("Game is Starting")
+
             player1Health = startingHealth
             player2Health = startingHealth
             player1Win = False
@@ -174,7 +176,7 @@ while(True):
                 packet = struct.pack(CMD_FMT, SIG, roundNo, task, threshold)
                 e.send(BROADCAST, packet)
                 sentAt = time.ticks_ms()
-
+                print("Sent Task")
 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -216,10 +218,12 @@ while(True):
                 # check to make sure it stopped searching because it got responses
                 # if it stopped due to deadline, error and end game
                 if (timestamp1 == None) or (timestamp2 == None):
+                    print("Controller Connection Error - Game Aborted")
                     aborted = True
                     gameOver = True
                     continue
 
+                print("Packet Received")
                     
 
                 # 3. Compare timestamps from players
@@ -229,17 +233,21 @@ while(True):
                 if(timestamp1 < 0 or timestamp2 < 0):
                     # decrease health of whoever is wrong and go next
                     if(timestamp1 < 0):
+                        print("Player 1 Takes Damage (slow or wrong)")
                         player1Health -= damage
                     
                     if(timestamp2 < 0):
+                        print("Player 2 Takes Damage (slow or wrong)")
                         player2Health -= damage
                 # if neither are wrong and if neither are too slow, check who was faster
                 elif(timestamp1 < timestamp2):
                     # player1 was faster and won
+                    print("Player 2 Takes Damage (Player 1 Won)")
                     player2Health -= damage
                 
                 elif(timestamp2 < timestamp1):
                     # player2 was faster and won
+                    print("Player 1 Takes Damage (Player 2 Won)")
                     player1Health -= damage
                     
                 else:
@@ -248,8 +256,7 @@ while(True):
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-                    # Tie
-                    pass
+                    print("Players Tied - No Damage Dealt")
                 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -262,14 +269,17 @@ while(True):
                 # check to make sure neither player is at 0
                 # if at 0, game is over
                 if(player1Health <= 0 and player2Health <= 0):
+                    print("Both Players Out of Health - Draw")
                     gameOver = True
                     draw = True
                 
                 elif(player1Health <= 0):
+                    print("Player 2 Wins!")
                     player2Win = True
                     gameOver = True
                             
                 elif(player2Health <= 0):
+                    print("Player 1 Wins!")
                     player1Win = True
                     gameOver = True
 
