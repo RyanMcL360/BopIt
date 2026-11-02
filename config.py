@@ -17,12 +17,11 @@ PLAYER_ID = 1          # 1 for controller one, 2 for controller two
 
 # ---------------------------------------------------------------
 # Hub address
-# Run this on the hub board to find its MAC:
-#   import network; w = network.WLAN(network.STA_IF); w.active(True); print(w.config("mac"))
-# It prints something like b'\xa0v\x4e...'. Paste those 6 bytes below.
+# and controller addresses
 # ---------------------------------------------------------------
-HUB_MAC = b"\x80\x45\x66\x29\x99\x30"   # PLACEHOLDER, replace with the hub's real MAC
-
+HUB_MAC = b"\x80\x45\x6b\x29\x99\x30"   
+P1_MAC = b"\x80\x45\x6b\x2d\x1b\x48"
+P2_MAC = b"\x80\x45\x6b\x29\xf0\x9c"
 # ---------------------------------------------------------------
 # Pins (ESP32-S3-DevKitC-1 N8R8)
 # Avoid GPIO 26-37 (flash/PSRAM), 19/20 (USB), and strapping pins 0, 3, 45, 46.
@@ -32,7 +31,7 @@ SDA = 8
 SCL = 9
 
 # Jump button: wire one side to the pin, the other to GND (internal pull-up used)
-BTN = 23
+BTN = 4
 
 # I2S to MAX98357A amplifier
 BCLK = 5               # amp pin BCLK
@@ -56,8 +55,18 @@ RESULT_WRONG = 2
 # ---------------------------------------------------------------
 # Message formats (must match the hub exactly)
 # ---------------------------------------------------------------
-CMD_FMT = "<BBH"       # hub -> controllers: round_id, command, window_ms
-RES_FMT = "<BBH"      # controller -> hub: round_id, player_id, result, reaction_ms
+'''message format: using python's Struct: '<' indicates little endian, B indicates a Byte, H is two bytes
+         commands: 1=shield, 2=attack, 3=jump    results: 0=timeout, 1=success, 2=wrong input'''
+#CMD_FMT is command format, transmits from hub to controller
+CMD_FMT = "<BBBH"      # signature, round_id, command, window_ms
+#RES_FMT is response format, transmits from controller back to hub
+RES_FMT = "<BBBh"     # signature, round_id, player_id, reaction_ms
+
+
+ATTACK_AXIS = 1        # 0=x, 1=y, 2=z (found with the axis test script)
+ATTACK_SIGN = 1        # 1 or -1 so a forward thrust is positive
+ATTACK_THRESH = 1.0    # forward acceleration in g, start from your tuned value
+ATTACK_RATIO = 2.0     # forward must beat sideways motion by this factor
 
 # ---------------------------------------------------------------
 # Audio
