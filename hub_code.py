@@ -118,7 +118,7 @@ def controllersReady(tries = 3, waitMs = 300):
 # outer loop to always run when the game is turned on
 while(True):
 
-    # ret current state of the button
+    # read current state of the button
     pressed = button.value()
 
     # check whether the button is pressed once and then 20 ms later to prevent accidental noise trigger
