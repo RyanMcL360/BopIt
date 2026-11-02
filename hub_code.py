@@ -1,6 +1,8 @@
 # Brawl It Hub code
 
 from machine import Pin
+from machine import SPI
+from ra8875 import RA8875
 import random
 import time
 import network
@@ -30,7 +32,34 @@ delayMin = 1500
 delayMax = 3500
 
 # initialize button (pin 4 - GPIO)
-button = Pin(4, Pin.IN, Pin.PULL_UP)
+PIN_BUTTON = 4
+button = Pin(PIN_BUTTON, Pin.IN, Pin.PULL_UP)
+
+# initialize screen pins
+PIN_SCK = 14
+PIN_MOSI = 12
+PIN_MISO = 13
+PIN_CS = 10
+PIN_RST = 9
+PIN_WAIT = 8
+PIN_LITE = 11
+
+# set up all of the pins
+cs = Pin(PIN_CS, Pin.OUT, value = 1)
+rst = Pin(PIN_RST, Pin.OUT, value = 1)
+wait = Pin(PIN_WAIT, Pin.IN)
+lite = Pin(PIN_LITE, Pin.IN)
+
+# set up SPI bus
+spi = SPI(1, baudrate = 1000000, polarity = 0, phase = 0, sck = Pin(PIN_SCK), mosi = Pin(PIN_MOSI), miso = Pin(PIN_MISO))
+
+# create screen object
+try:
+    tft = RA8875(spi, cs, rst, 800, 480, touch = False)
+# if screen errors continue with game
+except Exception as err:
+    print("Display failed to start: ", err)
+    tft = None
 
 # ESP NOW setup
 
