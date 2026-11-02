@@ -96,3 +96,23 @@ MAG_THRESH = 300       # change in field magnitude that counts as "shield"
 SHAKE_THRESH = 1.5     # deviation from 1 g that counts as "attack"
 
 BASELINE_SAMPLES = 20  # readings averaged at boot for the magnetometer baseline
+
+# ---------------------------------------------------------------
+# Hall (shield) sensor: output wired to this GPIO (ADC1 range, away from I2C/I2S/button)
+# ---------------------------------------------------------------
+HALL_PIN = 1
+
+# ---------------------------------------------------------------
+# Message signature and connection check ("ping")
+# Every packet starts with SIGNATURE so stray ESP-NOW traffic is ignored.
+# SIGNATURE MUST be the same byte the hub uses -- confirm with whoever wrote the hub.
+#
+# Connection check: the hub sends a normal command packet with
+#   round_id = PING_ROUND, command = PING_CMD, window_ms = PING_WINDOW
+# and the controller echoes the same bytes back. That is why the hub must never
+# use 255 as a real round number (wrap rounds 0..254).
+# ---------------------------------------------------------------
+SIGNATURE = 0x35
+PING_ROUND = 255
+PING_CMD = 0
+PING_WINDOW = 0
