@@ -23,7 +23,7 @@ startingHealth = 5
 damage = 1
 
 # timing in ms
-startThreshold = 3000
+startThreshold = 5000
 thresholdStep = 200
 minThreshold = 1000
 
@@ -142,8 +142,55 @@ def controllersReady(tries = 3, waitMs = 300):
 
         if ready1 and ready2:
             return True
+
     return False
 
+
+""" Player 2 Check removed for Prototype
+# function to check if controllers are on
+def controllersReady(tries = 3, waitMs = 300):
+    ready1 = False
+
+    PING = 0
+    PING_ROUND = 255
+
+    for attempt in range(tries):
+
+        # throw old values away
+        while True:
+            mac, msg = e.recv(0)
+            if mac == None:
+                break
+
+        # broadcast to ping controllers
+        e.send(BROADCAST, struct.pack(CMD_FMT, SIG, PING_ROUND, PING, 0))
+        sentAt = time.ticks_ms()
+
+        # wait for both responses or the deadline
+        while((not ready1) and time.ticks_diff(time.ticks_ms(), sentAt) < waitMs):
+            # get the mac of sender and msg of sender
+            mac, msg = e.recv(50)
+
+            # if the msg is None or not our size, continue
+            if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+                continue
+
+            # if it is our size, unpack it
+            s, rnd, player, t = struct.unpack(RES_FMT, msg)
+
+            # check to make sure it is our signature and right round
+            if (s != SIG) or (rnd != PING_ROUND):
+                continue
+
+            # set whichever player ready
+            if (player == 1) and (mac == CONTROLLER1_MAC):
+                ready1 = True
+
+        if ready1:
+            return True
+    return False
+"""
+    
 # outer loop to always run when the game is turned on
 while(True):
 
@@ -219,6 +266,7 @@ while(True):
                 timestamp2 = None
                 deadline = threshold + 500
 
+                
                 # wait for both timestamps or the deadline
                 while((timestamp1 == None or timestamp2 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
 
@@ -254,6 +302,45 @@ while(True):
                     continue
 
                 print("Packet Received")
+                
+                """ Player 2 Check removed for Prototype
+                # wait for both timestamps or the deadline
+                while((timestamp1 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
+
+                    # get the mac of sender and msg of sender
+                    mac, msg = e.recv(50)
+
+                    # if the msg is None or not our size, continue
+                    if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+                        continue
+
+                    # if it is our size, unpack it
+                    s, rnd, player, t = struct.unpack(RES_FMT, msg)
+
+                    # check to make sure it is our signature and right round
+                    if (s != SIG) or (rnd != roundNo):
+                        continue
+
+                    # check to make sure its actually the players
+                    if (player == 1 and mac != CONTROLLER1_MAC):
+                        continue
+
+                    if (player == 1) and (timestamp1 == None):
+                        timestamp1 = t
+                    
+
+                # check to make sure it stopped searching because it got responses
+                # if it stopped due to deadline, error and end game
+                if (timestamp1 == None):
+                    print("Controller Connection Error - Game Aborted")
+                    aborted = True
+                    gameOver = True
+                    continue
+
+                timestamp2 = -1
+
+                print("Packet Received")
+                """
                     
 
                 # 3. Compare timestamps from players
@@ -269,15 +356,16 @@ while(True):
                     if(timestamp2 < 0):
                         print("Player 2 Takes Damage (slow or wrong)")
                         player2Health -= damage
+
                 # if neither are wrong and if neither are too slow, check who was faster
                 elif(timestamp1 < timestamp2):
                     # player1 was faster and won
-                    print("Player 2 Takes Damage (Player 1 Won)")
+                    print("Player 2 Takes Damage (Player 1 Won the Round)")
                     player2Health -= damage
                 
                 elif(timestamp2 < timestamp1):
                     # player2 was faster and won
-                    print("Player 1 Takes Damage (Player 2 Won)")
+                    print("Player 1 Takes Damage (Player 2 Won the Round)")
                     player1Health -= damage
                     
                 else:
@@ -287,6 +375,8 @@ while(True):
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                     print("Players Tied - No Damage Dealt")
+
+                print("Player 1 Health:", player1Health, "\nPlayer 2 Health:", player2Health)
                 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
