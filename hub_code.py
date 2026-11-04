@@ -98,6 +98,7 @@ RES_FMT = "<BBBh"
 CONTROLLER1_MAC = b'\x80\x45\x6b\x2d\x1b\x48'
 CONTROLLER2_MAC = b'\x80\x45\x6b\x29\xf0\x9c'
 
+"""
 # function to check if controllers are on
 def controllersReady(tries = 3, waitMs = 300):
     ready1 = False
@@ -144,9 +145,10 @@ def controllersReady(tries = 3, waitMs = 300):
             return True
 
     return False
+"""
 
 
-""" Player 2 Check removed for Prototype
+# Player 2 Check removed for Prototype
 # function to check if controllers are on
 def controllersReady(tries = 3, waitMs = 300):
     ready1 = False
@@ -189,7 +191,7 @@ def controllersReady(tries = 3, waitMs = 300):
         if ready1:
             return True
     return False
-"""
+
     
 # outer loop to always run when the game is turned on
 while(True):
@@ -266,7 +268,7 @@ while(True):
                 timestamp2 = None
                 deadline = threshold + 500
 
-                
+                """
                 # wait for both timestamps or the deadline
                 while((timestamp1 == None or timestamp2 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
 
@@ -302,8 +304,10 @@ while(True):
                     continue
 
                 print("Packet Received")
-                
-                """ Player 2 Check removed for Prototype
+                """
+
+
+                # Player 2 Check removed for Prototype
                 # wait for both timestamps or the deadline
                 while((timestamp1 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
 
@@ -340,7 +344,7 @@ while(True):
                 timestamp2 = -1
 
                 print("Packet Received")
-                """
+                
                     
 
                 # 3. Compare timestamps from players
