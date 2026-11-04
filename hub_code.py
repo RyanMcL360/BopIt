@@ -215,6 +215,7 @@ while(True):
                 continue
     
             print("Game is Starting")
+            time.sleep_ms(3500)
 
             player1Health = startingHealth
             player2Health = startingHealth
