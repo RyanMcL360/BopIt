@@ -48,3 +48,20 @@ def play(sound):
     df_send(0x12, track)
     print("Audio playing!")
     return
+
+
+
+"""
+Two new packets have been added that you need to check for: start game audio and end game audio.
+With the new packets the way you look for them should be checking tasks. 
+Task 0 | controller check - send back a packet with what player got the message
+Task 1 - 3 | command inputs - send back normal packet and play matching audio
+Task 4 | start audio - do not send anything back, just play "start" audio
+Task 5 | end audio - do not send anything back, always play "game" audio, then play relevant player win voice line
+
+In task 5, check the threshold field to see who won:
+Threshold = 0 | Nobody won, play "tie" voice line
+Threshold = 1 | Player 1 won, play "player1" voice line
+Threshold = 2 | Player 2 won, play "player2" voice line
+Threhsold = 3 | Game aborted, skip extra audio.
+"""

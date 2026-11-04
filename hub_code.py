@@ -98,6 +98,11 @@ RES_FMT = "<BBBh"
 CONTROLLER1_MAC = b'\x80\x45\x6b\x2d\x1b\x48'
 CONTROLLER2_MAC = b'\x80\x45\x6b\x29\xf0\x9c'
 
+# other packet constants
+PING_ROUND = 255
+START_AUDIO = 4
+END_AUDIO = 5
+
 """
 # function to check if controllers are on
 def controllersReady(tries = 3, waitMs = 300):
@@ -105,7 +110,7 @@ def controllersReady(tries = 3, waitMs = 300):
     ready2 = False
 
     PING = 0
-    PING_ROUND = 255
+    global PING_ROUND
 
     for attempt in range(tries):
 
@@ -154,7 +159,7 @@ def controllersReady(tries = 3, waitMs = 300):
     ready1 = False
 
     PING = 0
-    PING_ROUND = 255
+    global PING_ROUND
 
     for attempt in range(tries):
 
@@ -217,6 +222,18 @@ while(True):
             print("Game is Starting")
             time.sleep_ms(3500)
 
+            # send start audio packet
+            while True:
+                senderMac, senderMsg = e.recv(0)
+                if senderMac is None:
+                    break
+            packet = struct.pack(CMD_FMT, SIG, PING_ROUND, START_AUDIO, 0)
+            e.send(BROADCAST, packet)
+            print("Sent Start Audio")
+
+            # wait for audio to play
+            time.sleep_ms(2000)
+
             player1Health = startingHealth
             player2Health = startingHealth
             player1Win = False
@@ -232,7 +249,6 @@ while(True):
                 delay = random.randint(delayMin, delayMax)
                 time.sleep_ms(delay)
 
-
                 # 1. Task Select
                 task = random.randint(1, 3)
 
@@ -241,14 +257,8 @@ while(True):
 
                 if (threshold < minThreshold):
                     threshold = minThreshold
-                
 
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # Transmit task to the controllers # # # # # 
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+                # send task to the controllers
                 while True:
                     senderMac, senderMsg = e.recv(0)
                     if senderMac is None:
@@ -257,12 +267,6 @@ while(True):
                 e.send(BROADCAST, packet)
                 sentAt = time.ticks_ms()
                 print("Sent Task")
-
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-                # # # # # Receive timestamp from the controllers # # # # # 
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
                 # clear timestamps and set deadline to get packets back
                 timestamp1 = None
@@ -415,6 +419,26 @@ while(True):
             # # # # # Display winner message on hub # # # # # 
             # # # # # # # # # # # # # # # # # # # # # # # # #
             # # # # # # # # # # # # # # # # # # # # # # # # #
+
+            # send end audio packet
+            while True:
+                senderMac, senderMsg = e.recv(0)
+                if senderMac is None:
+                    break
+
+            # find out which player won
+            if draw:
+                winner = 0
+            elif player1Win:
+                winner = 1
+            elif player2Win:
+                winner = 2
+            else:
+                winner = 3
+            
+            packet = struct.pack(CMD_FMT, SIG, PING_ROUND, END_AUDIO, winner)
+            e.send(BROADCAST, packet)
+            print("Sent End Audio")
 
             # wait 5 seconds before allowing another game to start
             time.sleep(5)
