@@ -1,6 +1,8 @@
 # Brawl It Hub code
 
 from machine import Pin
+from machine import SPI
+from ra8875 import RA8875
 import random
 import time
 import network
@@ -21,7 +23,7 @@ startingHealth = 5
 damage = 1
 
 # timing in ms
-startThreshold = 3000
+startThreshold = 5000
 thresholdStep = 200
 minThreshold = 1000
 
@@ -30,7 +32,34 @@ delayMin = 1500
 delayMax = 3500
 
 # initialize button (pin 4 - GPIO)
-button = Pin(4, Pin.IN, Pin.PULL_UP)
+PIN_BUTTON = 4
+button = Pin(PIN_BUTTON, Pin.IN, Pin.PULL_UP)
+
+# initialize screen pins
+PIN_SCK = 14
+PIN_MOSI = 12
+PIN_MISO = 13
+PIN_CS = 10
+PIN_RST = 9
+PIN_WAIT = 8
+PIN_LITE = 11
+
+# set up all of the pins
+cs = Pin(PIN_CS, Pin.OUT, value = 1)
+rst = Pin(PIN_RST, Pin.OUT, value = 1)
+wait = Pin(PIN_WAIT, Pin.IN)
+lite = Pin(PIN_LITE, Pin.IN)
+
+# set up SPI bus
+spi = SPI(1, baudrate = 1000000, polarity = 0, phase = 0, sck = Pin(PIN_SCK), mosi = Pin(PIN_MOSI), miso = Pin(PIN_MISO))
+
+# create screen object
+try:
+    tft = RA8875(spi, cs, rst, 800, 480, touch = False)
+# if screen errors continue with game
+except Exception as err:
+    print("Display failed to start: ", err)
+    tft = None
 
 # ESP NOW setup
 
@@ -69,13 +98,19 @@ RES_FMT = "<BBBh"
 CONTROLLER1_MAC = b'\x80\x45\x6b\x2d\x1b\x48'
 CONTROLLER2_MAC = b'\x80\x45\x6b\x29\xf0\x9c'
 
+# other packet constants
+PING_ROUND = 255
+START_AUDIO = 4
+END_AUDIO = 5
+
+"""
 # function to check if controllers are on
 def controllersReady(tries = 3, waitMs = 300):
     ready1 = False
     ready2 = False
 
     PING = 0
-    PING_ROUND = 255
+    global PING_ROUND
 
     for attempt in range(tries):
 
@@ -113,8 +148,56 @@ def controllersReady(tries = 3, waitMs = 300):
 
         if ready1 and ready2:
             return True
+
+    return False
+"""
+
+
+# Player 2 Check removed for Prototype
+# function to check if controllers are on
+def controllersReady(tries = 3, waitMs = 300):
+    ready1 = False
+
+    PING = 0
+    global PING_ROUND
+
+    for attempt in range(tries):
+
+        # throw old values away
+        while True:
+            mac, msg = e.recv(0)
+            if mac == None:
+                break
+
+        # broadcast to ping controllers
+        e.send(BROADCAST, struct.pack(CMD_FMT, SIG, PING_ROUND, PING, 0))
+        sentAt = time.ticks_ms()
+
+        # wait for both responses or the deadline
+        while((not ready1) and time.ticks_diff(time.ticks_ms(), sentAt) < waitMs):
+            # get the mac of sender and msg of sender
+            mac, msg = e.recv(50)
+
+            # if the msg is None or not our size, continue
+            if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+                continue
+
+            # if it is our size, unpack it
+            s, rnd, player, t = struct.unpack(RES_FMT, msg)
+
+            # check to make sure it is our signature and right round
+            if (s != SIG) or (rnd != PING_ROUND):
+                continue
+
+            # set whichever player ready
+            if (player == 1) and (mac == CONTROLLER1_MAC):
+                ready1 = True
+
+        if ready1:
+            return True
     return False
 
+    
 # outer loop to always run when the game is turned on
 while(True):
 
@@ -137,6 +220,19 @@ while(True):
                 continue
     
             print("Game is Starting")
+            time.sleep_ms(3500)
+
+            # send start audio packet
+            while True:
+                senderMac, senderMsg = e.recv(0)
+                if senderMac is None:
+                    break
+            packet = struct.pack(CMD_FMT, SIG, PING_ROUND, START_AUDIO, 0)
+            e.send(BROADCAST, packet)
+            print("Sent Start Audio")
+
+            # wait for audio to play
+            time.sleep_ms(2000)
 
             player1Health = startingHealth
             player2Health = startingHealth
@@ -153,7 +249,6 @@ while(True):
                 delay = random.randint(delayMin, delayMax)
                 time.sleep_ms(delay)
 
-
                 # 1. Task Select
                 task = random.randint(1, 3)
 
@@ -162,14 +257,8 @@ while(True):
 
                 if (threshold < minThreshold):
                     threshold = minThreshold
-                
 
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # Transmit task to the controllers # # # # # 
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # #
-
+                # send task to the controllers
                 while True:
                     senderMac, senderMsg = e.recv(0)
                     if senderMac is None:
@@ -179,17 +268,12 @@ while(True):
                 sentAt = time.ticks_ms()
                 print("Sent Task")
 
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
-                # # # # # Receive timestamp from the controllers # # # # # 
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-                # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
                 # clear timestamps and set deadline to get packets back
                 timestamp1 = None
                 timestamp2 = None
                 deadline = threshold + 500
 
+                """
                 # wait for both timestamps or the deadline
                 while((timestamp1 == None or timestamp2 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
 
@@ -225,6 +309,47 @@ while(True):
                     continue
 
                 print("Packet Received")
+                """
+
+
+                # Player 2 Check removed for Prototype
+                # wait for both timestamps or the deadline
+                while((timestamp1 == None) and time.ticks_diff(time.ticks_ms(), sentAt) < deadline):
+
+                    # get the mac of sender and msg of sender
+                    mac, msg = e.recv(50)
+
+                    # if the msg is None or not our size, continue
+                    if (msg == None) or (len(msg) != struct.calcsize(RES_FMT)):
+                        continue
+
+                    # if it is our size, unpack it
+                    s, rnd, player, t = struct.unpack(RES_FMT, msg)
+
+                    # check to make sure it is our signature and right round
+                    if (s != SIG) or (rnd != roundNo):
+                        continue
+
+                    # check to make sure its actually the players
+                    if (player == 1 and mac != CONTROLLER1_MAC):
+                        continue
+
+                    if (player == 1) and (timestamp1 == None):
+                        timestamp1 = t
+                    
+
+                # check to make sure it stopped searching because it got responses
+                # if it stopped due to deadline, error and end game
+                if (timestamp1 == None):
+                    print("Controller Connection Error - Game Aborted")
+                    aborted = True
+                    gameOver = True
+                    continue
+
+                timestamp2 = -1
+
+                print("Packet Received")
+                
                     
 
                 # 3. Compare timestamps from players
@@ -240,15 +365,16 @@ while(True):
                     if(timestamp2 < 0):
                         print("Player 2 Takes Damage (slow or wrong)")
                         player2Health -= damage
+
                 # if neither are wrong and if neither are too slow, check who was faster
                 elif(timestamp1 < timestamp2):
                     # player1 was faster and won
-                    print("Player 2 Takes Damage (Player 1 Won)")
+                    print("Player 2 Takes Damage (Player 1 Won the Round)")
                     player2Health -= damage
                 
                 elif(timestamp2 < timestamp1):
                     # player2 was faster and won
-                    print("Player 1 Takes Damage (Player 2 Won)")
+                    print("Player 1 Takes Damage (Player 2 Won the Round)")
                     player1Health -= damage
                     
                 else:
@@ -258,6 +384,8 @@ while(True):
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                     # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
                     print("Players Tied - No Damage Dealt")
+
+                print("Player 1 Health:", player1Health, "\nPlayer 2 Health:", player2Health)
                 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
                 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
@@ -291,6 +419,26 @@ while(True):
             # # # # # Display winner message on hub # # # # # 
             # # # # # # # # # # # # # # # # # # # # # # # # #
             # # # # # # # # # # # # # # # # # # # # # # # # #
+            
+            # find out which player won
+            if draw:
+                winner = 0
+            elif player1Win:
+                winner = 1
+            elif player2Win:
+                winner = 2
+            else:
+                winner = 3
+
+            # send end audio packet
+            while True:
+                senderMac, senderMsg = e.recv(0)
+                if senderMac is None:
+                    break
+            
+            packet = struct.pack(CMD_FMT, SIG, PING_ROUND, END_AUDIO, winner)
+            e.send(BROADCAST, packet)
+            print("Sent End Audio")
 
             # wait 5 seconds before allowing another game to start
             time.sleep(5)
