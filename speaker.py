@@ -53,11 +53,12 @@ def play(sound):
 
 """
 Two new packets have been added that you need to check for: start game audio and end game audio.
-With the new packets the way you look for them should be checking tasks. 
+With the new packets the way you look for them should be checking the task field instead of round == 255. 
 Task 0 | controller check - send back a packet with what player got the message
 Task 1 - 3 | command inputs - send back normal packet and play matching audio
 Task 4 | start audio - do not send anything back, just play "start" audio
-Task 5 | end audio - do not send anything back, always play "game" audio, then play relevant player win voice line
+Task 5 | end audio - do not send anything back, always play "game" audio, wait for the entire duration of the audio,
+                     then play relevant player win voice line (see below)
 
 In task 5, check the threshold field to see who won:
 Threshold = 0 | Nobody won, play "tie" voice line

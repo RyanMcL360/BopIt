@@ -419,13 +419,7 @@ while(True):
             # # # # # Display winner message on hub # # # # # 
             # # # # # # # # # # # # # # # # # # # # # # # # #
             # # # # # # # # # # # # # # # # # # # # # # # # #
-
-            # send end audio packet
-            while True:
-                senderMac, senderMsg = e.recv(0)
-                if senderMac is None:
-                    break
-
+            
             # find out which player won
             if draw:
                 winner = 0
@@ -435,6 +429,12 @@ while(True):
                 winner = 2
             else:
                 winner = 3
+
+            # send end audio packet
+            while True:
+                senderMac, senderMsg = e.recv(0)
+                if senderMac is None:
+                    break
             
             packet = struct.pack(CMD_FMT, SIG, PING_ROUND, END_AUDIO, winner)
             e.send(BROADCAST, packet)
