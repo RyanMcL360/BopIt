@@ -33,27 +33,22 @@ SCL = 9
 # Jump button: wire one side to the pin, the other to GND (internal pull-up used)
 BTN = 4
 
-# I2S to MAX98357A amplifier
-BCLK = 5               # amp pin BCLK
-LRC = 6                # amp pin LRC (word select)
-DIN = 7                # amp pin DIN
-
 # ---------------------------------------------------------------
-# Commands (what the hub asks for)
+# Commands 
 # ---------------------------------------------------------------
 SHIELD = 1
 ATTACK = 2
 JUMP = 3
 
 # ---------------------------------------------------------------
-# Results (what the controller reports back)
+# Results 
 # ---------------------------------------------------------------
 RESULT_TIMEOUT = 0
 RESULT_SUCCESS = 1
 RESULT_WRONG = 2
 
 # ---------------------------------------------------------------
-# Message formats (must match the hub exactly)
+# Message formats
 # ---------------------------------------------------------------
 '''message format: using python's Struct: '<' indicates little endian, B indicates a Byte, H is two bytes
          commands: 1=shield, 2=attack, 3=jump    results: 0=timeout, 1=success, 2=wrong input'''
@@ -74,28 +69,29 @@ ATTACK_RATIO = 2.0     # forward must beat sideways motion by this factor
 # ---------------------------------------------------------------
 SAMPLE_RATE = 16000
 
-SND_SUCCESS = 10
-SND_FAIL = 11
+# Command codes - task field in package receieved
+PING_CMD = 0        # 0 is ping, echo back to start game
+CMD_START = 4       # cmd = 4
+CMD_END = 5         # cmd = 5
 
-CLIPS = {
-    SHIELD: "shield.wav",
-    ATTACK: "attack.wav",
-    JUMP: "jump.wav",
-    SND_SUCCESS: "success.wav",
-    SND_FAIL: "fail.wav",
+# DFPlayer Mini (UART, binary frames)
+DF_UART = 1
+DF_TX = 5           # ESP32 TX -> DFPlayer RX (through 1k resistor)
+DF_RX = 6           # ESP32 RX <- DFPlayer TX
+DF_BAUD = 9600
+DF_VOLUME = 20      # 0-30
+
+TRACKS = {          # must match the hub-side numbering / SD card file order
+    "shield": 1, "attack": 2, "jump": 3, "start": 4,
+    "game": 5, "player1": 6, "player2": 7, "tie": 8,
 }
+GAME_AUDIO_MS = 8000   # TODO: set to the real length of your "game" track
 
 # ---------------------------------------------------------------
-# Input tuning (STARTING GUESSES, adjust by experiment)
+# Input tuning 
 # ---------------------------------------------------------------
 POLL_MS = 5            # how often inputs are checked
 GRACE_MS = 150         # ignore IMU/magnetometer this long after a round starts
-
-MAG_THRESH = 300       # change in field magnitude that counts as "shield"
-                       # (units depend on your driver; print real values to tune)
-SHAKE_THRESH = 1.5     # deviation from 1 g that counts as "attack"
-
-BASELINE_SAMPLES = 20  # readings averaged at boot for the magnetometer baseline
 
 # ---------------------------------------------------------------
 # Hall (shield) sensor: output wired to this GPIO (ADC1 range, away from I2C/I2S/button)
