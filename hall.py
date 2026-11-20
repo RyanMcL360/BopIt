@@ -1,5 +1,5 @@
 
-# hall.py -- digital Hall effect switch (A3144 / 3144E module)
+# hall.py -- digital Hall effect switch 
 #
 # The A3144 is NOT analog. Its output is open-collector: it is released (reads 1)
 # with no magnet, and pulled to ground (reads 0) while the SOUTH pole of a magnet
